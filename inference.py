@@ -61,14 +61,35 @@ def run_task(task_name):
 
 def main():
     tasks = ["focus_task_1", "focus_task_2", "focus_task_3"]
-    results = []
 
     for task in tasks:
-        score = run_task(task)
-        results.append(score)
+        print(f"[START] task={task} env=focusx model={MODEL_NAME}", flush=True)
 
-    return {
-        "status": "completed",
-        "scores": results,
-        "avg_score": sum(results) / len(results)
-    }
+        env = FocusEnv()
+        state = env.reset()
+
+        total_reward = 0.0
+        done = False
+        step = 0
+
+        while not done and step < 10:
+            action = get_action(state)
+            state, reward, done, info = env.step(action)
+
+            step += 1
+            total_reward += reward
+
+            error = info.get("error", None)
+
+            print(
+                f"[STEP] step={step} action={action} reward={reward:.2f} done={str(done).lower()} error={error if error else 'null'}",
+                flush=True
+            )
+
+        score = max(0.01, min(0.99, (total_reward + 10) / 20))
+        success = score > 0.5
+
+        print(
+            f"[END] success={str(success).lower()} steps={step} score={score:.2f}",
+            flush=True
+        )
