@@ -1,5 +1,5 @@
 [project]
-name = "focusx-openenv"
+name = "focusx-env"
 version = "0.1.0"
 description = "AI Productivity OpenEnv"
 requires-python = ">=3.10"
@@ -11,6 +11,9 @@ dependencies = [
     "requests",
     "pydantic"
 ]
+
+[project.scripts]
+server = "inference:app"
 
 [build-system]
 requires = ["setuptools", "wheel"]
