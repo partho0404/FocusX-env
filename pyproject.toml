@@ -1,0 +1,17 @@
+[project]
+name = "focusx-openenv"
+version = "0.1.0"
+description = "AI Productivity OpenEnv"
+requires-python = ">=3.10"
+
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "openai>=1.0.0",
+    "requests",
+    "pydantic"
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
