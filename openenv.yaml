@@ -1,0 +1,7 @@
+name: focusx-openenv
+version: "0.1.0"
+description: "AI Productivity RL Environment"
+type: http
+runtime: docker
+app: server.app:app
+port: 7860
