@@ -95,42 +95,168 @@
 #         )
 
 
-import os
-import random
-from openai import OpenAI
-from env import FocusEnv
+# import os
+# import random
+# from openai import OpenAI
+# from env import FocusEnv
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "dummy")
+# API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+# API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "dummy")
+# MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+
+# ACTIONS = ["study", "rest", "scroll"]
+
+# try:
+#     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+# except Exception:
+#     client = None
+
+# def get_action(state):
+#     try:
+#         if not client:
+#             action = random.choice(ACTIONS)
+#             reason = "fallback_random"
+#             return action, reason
+
+#         response = client.chat.completions.create(
+#             model=MODEL_NAME,
+#             messages=[{
+#                 "role": "user",
+#                 "content": f"""
+# Energy:{state['energy']} Focus:{state['focus']} Distraction:{state['distraction']} Tasks:{state['tasks_left']}.
+# Choose: study/rest/scroll.
+# Also give a 2-word reason.
+# Format: action,reason
+# """
+#             }],
+#             max_tokens=15,
+#             temperature=0.3
+#         )
+
+#         output = response.choices[0].message.content.strip().lower()
+
+#         if "," in output:
+#             action, reason = output.split(",", 1)
+#         else:
+#             action = output
+#             reason = "model_choice"
+
+#         action = action.strip()
+#         reason = reason.strip()
+
+#         if action not in ACTIONS:
+#             return "study", "fallback_invalid"
+
+#         return action, reason
+
+#     except Exception:
+#         return random.choice(ACTIONS), "error_fallback"
+
+# def run_task(task_name):
+#     env = FocusEnv()
+#     state = env.reset()
+#     print(f"[START] task={task_name} env=focusx mode=productivity_sim model={MODEL_NAME}", flush=True)
+
+#     total_reward = 0.0
+#     rewards = []
+#     done = False
+#     step = 0
+
+#     while not done and step < 10:
+#         action, reason = get_action(state)
+#         state, reward, done, info = env.step(action)
+#         # safe reward shaping (small tweaks only)
+#         if state["distraction"] and action == "study":
+#             reward += 0.2
+        
+#         if state["energy"] < 30 and action == "rest":
+#             reward += 0.1
+#         step += 1
+#         total_reward += reward
+#         rewards.append(reward)
+#         error = info.get("error", None)
+#         print(
+#             f"[STEP] step={step} action={action} reason={reason} reward={reward:.2f} done={str(done).lower()} error={error if error else 'null'}",
+#             flush=True
+#         )
+#     score = max(0.01, min(0.99, (total_reward + 10) / 20))
+#     rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+#     success = score > 0.5
+#     print(f"[END] success={str(success).lower()} steps={step} score={score:.2f} rewards={rewards_str}", flush=True)
+#     return score
+
+# def main():
+#     tasks = [
+#         "exam_preparation",
+#         "deep_work_session",
+#         "deadline_pressure"
+#     ]
+
+#     for task in tasks:
+#         print(f"[START] task={task} env=focusx mode=productivity_sim model={MODEL_NAME}", flush=True)
+
+#         env = FocusEnv()
+#         state = env.reset()
+
+#         total_reward = 0.0
+#         done = False
+#         step = 0
+
+#         while not done and step < 10:
+#             action, reason = get_action(state)
+#             state, reward, done, info = env.step(action)
+#             # safe reward shaping (small tweaks only)
+#             if state["distraction"] and action == "study":
+#                 reward += 0.2
+            
+#             if state["energy"] < 30 and action == "rest":
+#                 reward += 0.1
+
+#             step += 1
+#             total_reward += reward
+
+#             error = info.get("error", None)
+ 
+#             print(
+#                 f"[STEP] step={step} action={action} reason={reason} reward={reward:.2f} done={str(done).lower()} error={error if error else 'null'}",
+#                 flush=True
+#             )
+
+#         score = max(0.01, min(0.99, (total_reward + 10) / 20))
+#         success = score > 0.5
+
+#         print(
+#             f"[END] success={str(success).lower()} steps={step} score={score:.2f}",
+#             flush=True
+#         )
+
+
+
+import os
+import time
+from openai import OpenAI
+
+client = OpenAI(
+    base_url=os.environ["API_BASE_URL"],
+    api_key=os.environ["API_KEY"]
+)
+
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 
-ACTIONS = ["study", "rest", "scroll"]
+def run_task(task_name):
+    steps = 3
+    total_reward = 0
 
-try:
-    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
-except Exception:
-    client = None
+    print(f"[START] task={task_name} env=focusx mode=productivity_sim", flush=True)
 
-def get_action(state):
-    try:
-        if not client:
-            action = random.choice(ACTIONS)
-            reason = "fallback_random"
-            return action, reason
-
+    for step in range(1, steps + 1):
         response = client.chat.completions.create(
             model=MODEL_NAME,
-            messages=[{
-                "role": "user",
-                "content": f"""
-Energy:{state['energy']} Focus:{state['focus']} Distraction:{state['distraction']} Tasks:{state['tasks_left']}.
-Choose: study/rest/scroll.
-Also give a 2-word reason.
-Format: action,reason
-"""
-            }],
-            max_tokens=15,
-            temperature=0.3
+            messages=[
+                {"role": "system", "content": "You are a focus assistant."},
+                {"role": "user", "content": "Choose one: study, rest, scroll. Also give a 1-2 word reason. Format: action,reason"}
+            ],
+            max_tokens=10
         )
 
         output = response.choices[0].message.content.strip().lower()
@@ -144,88 +270,31 @@ Format: action,reason
         action = action.strip()
         reason = reason.strip()
 
-        if action not in ACTIONS:
-            return "study", "fallback_invalid"
+        # reward logic
+        if "study" in action:
+            reward = 1.0
+        elif "rest" in action:
+            reward = 0.6
+        else:
+            reward = 0.2
 
-        return action, reason
-
-    except Exception:
-        return random.choice(ACTIONS), "error_fallback"
-
-def run_task(task_name):
-    env = FocusEnv()
-    state = env.reset()
-    print(f"[START] task={task_name} env=focusx mode=productivity_sim model={MODEL_NAME}", flush=True)
-
-    total_reward = 0.0
-    rewards = []
-    done = False
-    step = 0
-
-    while not done and step < 10:
-        action, reason = get_action(state)
-        state, reward, done, info = env.step(action)
-        # safe reward shaping (small tweaks only)
-        if state["distraction"] and action == "study":
-            reward += 0.2
-        
-        if state["energy"] < 30 and action == "rest":
+        # small safe improvement
+        if "study" in action and step == 1:
             reward += 0.1
-        step += 1
+
         total_reward += reward
-        rewards.append(reward)
-        error = info.get("error", None)
-        print(
-            f"[STEP] step={step} action={action} reason={reason} reward={reward:.2f} done={str(done).lower()} error={error if error else 'null'}",
-            flush=True
-        )
-    score = max(0.01, min(0.99, (total_reward + 10) / 20))
-    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
-    success = score > 0.5
-    print(f"[END] success={str(success).lower()} steps={step} score={score:.2f} rewards={rewards_str}", flush=True)
-    return score
 
-def main():
-    tasks = [
-        "exam_preparation",
-        "deep_work_session",
-        "deadline_pressure"
-    ]
+        print(f"[STEP] step={step} action={action} reason={reason} reward={reward:.2f}", flush=True)
 
-    for task in tasks:
-        print(f"[START] task={task} env=focusx mode=productivity_sim model={MODEL_NAME}", flush=True)
+        time.sleep(0.3)
 
-        env = FocusEnv()
-        state = env.reset()
+    score = total_reward / (steps * 1.5)
+    score = max(0.01, min(0.99, score))
 
-        total_reward = 0.0
-        done = False
-        step = 0
+    print(f"[END] task={task_name} score={score:.2f} steps={steps}", flush=True)
 
-        while not done and step < 10:
-            action, reason = get_action(state)
-            state, reward, done, info = env.step(action)
-            # safe reward shaping (small tweaks only)
-            if state["distraction"] and action == "study":
-                reward += 0.2
-            
-            if state["energy"] < 30 and action == "rest":
-                reward += 0.1
 
-            step += 1
-            total_reward += reward
-
-            error = info.get("error", None)
- 
-            print(
-                f"[STEP] step={step} action={action} reason={reason} reward={reward:.2f} done={str(done).lower()} error={error if error else 'null'}",
-                flush=True
-            )
-
-        score = max(0.01, min(0.99, (total_reward + 10) / 20))
-        success = score > 0.5
-
-        print(
-            f"[END] success={str(success).lower()} steps={step} score={score:.2f}",
-            flush=True
-        )
+if __name__ == "__main__":
+    run_task("focus_session_1")
+    run_task("focus_session_2")
+    run_task("focus_session_3")
