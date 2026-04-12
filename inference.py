@@ -231,7 +231,6 @@
 #         )
 
 
-
 import os
 import time
 from openai import OpenAI
@@ -266,9 +265,13 @@ def run_task(task_name):
         else:
             action = output
             reason = "model_choice"
-
+        
         action = action.strip()
         reason = reason.strip()
+        
+        # fallback safety
+        if action not in ["study", "rest", "scroll"]:
+            action = "study"
 
         # reward logic
         if "study" in action:
@@ -283,9 +286,19 @@ def run_task(task_name):
             reward += 0.1
 
         total_reward += reward
+        # self-evaluation (safe)
+        # self-evaluation (safe, no API call)
+        if reward >= 1.0:
+            self_eval = "good"
+        elif reward >= 0.5:
+            self_eval = "ok"
+        else:
+            self_eval = "bad"
 
-        print(f"[STEP] step={step} action={action} reason={reason} reward={reward:.2f}", flush=True)
-
+        print(
+            f"[STEP] step={step} action={action} reason={reason} reward={reward:.2f} self_eval={self_eval}",
+            flush=True
+        )
         time.sleep(0.3)
 
     score = total_reward / (steps * 1.5)
